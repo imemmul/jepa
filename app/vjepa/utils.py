@@ -82,6 +82,74 @@ def load_checkpoint(
         epoch,
     )
 
+def init_video_segmentation_model(
+    device,
+    patch_size=16,
+    num_frames=16,
+    tubelet_size=2,
+    model_name='vit_base',
+    crop_size=224,
+    pred_depth=6,
+    pred_embed_dim=384,
+    uniform_power=False,
+    use_mask_tokens=False,
+    num_mask_tokens=2,
+    zero_init_mask_tokens=True,
+    use_sdpa=False,
+):
+    encoder = video_vit.__dict__[model_name](
+        img_size=crop_size,
+        patch_size=patch_size,
+        num_frames=num_frames,
+        tubelet_size=tubelet_size,
+        uniform_power=uniform_power,
+        use_sdpa=use_sdpa,
+    )
+    encoder = MultiMaskWrapper(encoder)
+    predictor = vit_pred.__dict__['vit_predictor'](
+        img_size=crop_size,
+        use_mask_tokens=use_mask_tokens,
+        patch_size=patch_size,
+        num_frames=num_frames,
+        tubelet_size=tubelet_size,
+        embed_dim=encoder.backbone.embed_dim,
+        predictor_embed_dim=pred_embed_dim,
+        depth=pred_depth,
+        num_heads=encoder.backbone.num_heads,
+        uniform_power=uniform_power,
+        num_mask_tokens=num_mask_tokens,
+        zero_init_mask_tokens=zero_init_mask_tokens,
+        use_sdpa=use_sdpa,
+    )
+    predictor = PredictorMultiMaskWrapper(predictor)
+
+    def init_weights(m):
+        if isinstance(m, torch.nn.Linear):
+            trunc_normal_(m.weight, std=0.02)
+            if m.bias is not None:
+                torch.nn.init.constant_(m.bias, 0)
+        elif isinstance(m, torch.nn.LayerNorm):
+            torch.nn.init.constant_(m.bias, 0)
+            torch.nn.init.constant_(m.weight, 1.0)
+
+    for m in encoder.modules():
+        init_weights(m)
+
+    for m in predictor.modules():
+        init_weights(m)
+
+    encoder.to(device)
+    predictor.to(device)
+    logger.info(encoder)
+    logger.info(predictor)
+
+    def count_parameters(model):
+        return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+    logger.info(f'Encoder number of parameters: {count_parameters(encoder)}')
+    logger.info(f'Predictor number of parameters: {count_parameters(predictor)}')
+
+    return encoder, predictor
 
 def init_video_model(
     device,
