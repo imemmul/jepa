@@ -101,7 +101,8 @@ class Block(nn.Module):
             qkv_bias=qkv_bias,
             qk_scale=qk_scale,
             attn_drop=attn_drop,
-            proj_drop=drop)
+            proj_drop=drop,
+            use_sdpa=False)
 
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
@@ -114,10 +115,11 @@ class Block(nn.Module):
     def forward(self, x, return_attention=False, mask=None):
         y, attn = self.attn(self.norm1(x), mask=mask)
         if return_attention:
-            return attn
-        x = x + y
-        x = x + self.mlp(self.norm2(x))
-        return x
+            x = x + y
+            x = x + self.mlp(self.norm2(x))
+            return x, attn
+        else:
+            return x
 
 
 class CrossAttention(nn.Module):

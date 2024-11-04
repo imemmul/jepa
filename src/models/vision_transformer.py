@@ -155,13 +155,12 @@ class VisionTransformer(nn.Module):
 
     def no_weight_decay(self):
         return {}
-
+    
     def forward(self, x, masks=None):
         """
         :param x: input image/video
         :param masks: indices of patch tokens to mask (remove)
         """
-
         if masks is not None and not isinstance(masks, list):
             masks = [masks]
 
@@ -172,7 +171,7 @@ class VisionTransformer(nn.Module):
         x = self.patch_embed(x)
         if pos_embed is not None:
             x += pos_embed
-        B, N, D = x.shape
+        B, N, D = x.shape # this comes okay
 
         # Mask away unwanted tokens (if masks provided)
         if masks is not None:
@@ -182,7 +181,7 @@ class VisionTransformer(nn.Module):
         # Fwd prop
         outs = []
         for i, blk in enumerate(self.blocks):
-            x = blk(x, mask=masks)
+            x = blk(x, mask=masks, return_attention=False)
             if self.out_layers is not None and i in self.out_layers:
                 outs.append(self.norm(x))
 
@@ -191,7 +190,7 @@ class VisionTransformer(nn.Module):
 
         if self.norm is not None:
             x = self.norm(x)
-
+        # print(f"inside vit 3 : {x.shape}")
         return x
 
     def interpolate_pos_encoding(self, x, pos_embed):
