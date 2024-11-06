@@ -16,9 +16,10 @@ from evals.video_classification_frozen.utils import (
 import numpy as np
 import warnings
 import os
-from decord import VideoReader, cpu, VideoLoader
+from utils import Video3DBBoxDataset, get_dataloaders
 import decord
 import cv2
+from MonoDETR.lib.models.monodetr.depthaware_transformer import build_depthaware_transformer
 
 resolution = 224
 device = 'cuda'
@@ -36,6 +37,7 @@ use_sdpa = False
 attend_accross_segments = True
 batch = 8
 
+
 def main():
     depth_encoder = init_model(
         crop_size=resolution,
@@ -50,17 +52,45 @@ def main():
         use_SiLU=use_SiLU,
         tight_SiLU=tight_SiLU,
         use_sdpa=use_sdpa,)
+    video_paths = [
+    "/home/vgl/emir/datasets/tudl/train_real/compressed_objects/segmentation_videos/000001/input.mp4",
+    "/home/vgl/emir/datasets/tudl/train_real/compressed_objects/segmentation_videos/000002/input.mp4",
+    "/home/vgl/emir/datasets/tudl/train_real/compressed_objects/segmentation_videos/000003/input.mp4",
+    ]
+    K_jsons = [
+        "/home/vgl/emir/datasets/tudl/train_real/000001/scene_camera.json",
+        "/home/vgl/emir/datasets/tudl/train_real/000002/scene_camera.json",
+        "/home/vgl/emir/datasets/tudl/train_real/000003/scene_camera.json"
+    ]
+    gt_jsons = [
+        "/home/vgl/emir/datasets/tudl/train_real/000001/scene_gt.json",
+        "/home/vgl/emir/datasets/tudl/train_real/000002/scene_gt.json",
+        "/home/vgl/emir/datasets/tudl/train_real/000003/scene_gt.json"
+    ]
+    models = [
+        "/home/vgl/emir/datasets/tudl/tudl_models/models/obj_000001.ply",
+        "/home/vgl/emir/datasets/tudl/tudl_models/models/obj_000002.ply",
+        "/home/vgl/emir/datasets/tudl/tudl_models/models/obj_000003.ply"
+    ]
     decord.bridge.set_bridge('torch')
-    vr = VideoReader(
-        '/home/vgl/emir/datasets/tudl/train_real/segmentation_video/000001/depth_000001.mp4',
-        ctx=cpu(0),
-        width=resolution,
-        height=resolution,)
-    for i in range(0, len(vr)-frames_per_clip, frames_per_clip):
-        batch = vr.get_batch(range(i, i+16))
-        batch = batch.unsqueeze(0).unsqueeze(0).to(device)
-        print(batch.shape)
-        out = depth_encoder(batch)
+    # vd = Video3DBBoxDataset(
+    #     video_paths=video_paths,
+    #     frame_step=frame_step,
+    #     K_jsons=K_jsons,
+    #     gt_jsons=gt_jsons,
+    #     models=models,
+    #     frames_per_clip=frames_per_clip,
+    # )
+    # print(bbox[0]['rotation_matrix'].shape)
+    build_depthaware_transformer()
+    # train_loader, val_loader = get_dataloaders(vd, 8)
+    # for batch in train_loader:
+    #     x, bbox = batch
+    #     print(bbox['rotation_matrices'].shape)
+    #     print(bbox['intrinsics'].shape)
+    #     print(bbox['dimensions'].shape)
+    #     print(bbox['centers'].shape)
+    #     break
     
     
     

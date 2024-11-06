@@ -133,8 +133,9 @@ def main():
         for i in range(0, len(vr) - 16, 16):
             batch = vr.get_batch(range(i, i+16))
             batch = batch.to(device).unsqueeze(0).float()
+            print(batch.permute(0, 4, 1, 2, 3).shape)
             out = encoder(batch.permute(0, 4, 1, 2, 3))
-            print(out.shape)
+            # print(out.shape)
             features = out.view(1, 8, 14, 14, 1024)
             features = features.permute(0, 4, 1, 2, 3)
             output = segmentation_head(features)
