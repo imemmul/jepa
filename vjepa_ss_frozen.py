@@ -92,58 +92,58 @@ def main():
     decord.bridge.set_bridge('torch')
     # input video loader contains 16 frames per clip and also we should batch them up to batch size
     from utils import VideoDataset, get_dataloaders
-    # vd = VideoDataset(video_paths, mask_paths, frame_step, frames_per_clip)
-    # train_loader, val_loader = get_dataloaders(vd, batch)
+    vd = VideoDataset(video_paths, mask_paths, frame_step, frames_per_clip)
+    train_loader, val_loader = get_dataloaders(vd, batch)
     segmentation_head = SegmentationHead3D(1024, 1).to(device)
     segmentation_head.load_state_dict(torch.load('/home/vgl/emir/weights/my_seg/segmentation_head_weights_2.pth'))
     criterion = torch.nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(segmentation_head.parameters(), lr=1e-4)
-    # for epoch in range(100):
-    #     # with torch.no_grad():
-    #     for x, y in train_loader:
-    #         # 8, 3, 16, 224, 224
-    #         vis_x = x.permute(0, 2, 3, 4, 1)
-    #         cv2.imwrite('input.png', np.array(vis_x[0, 0]))
-    #         x = x.to(device)
-    #         y = y.to(device)
-    #         encoder_output = encoder(x)
-    #         features = encoder_output.view(8, 8, 14, 14, 1024)
-    #         features = features.permute(0, 4, 1, 2, 3)
-    #         print(features.shape) # 8x1024x8x14x14
-    #         output = segmentation_head(features) # torch.Size([8, 16, 64, 224, 224])
-    #         output = output.squeeze(1)
-    #         print(output.shape)
-    #         probs = torch.sigmoid(output)
-    #         loss = criterion(output, y)
-    #         binary_mask = (probs.detach().cpu().numpy() > 0.5)
-    #         cv2.imwrite('output.png', binary_mask[0, 0]*255)
-    #         print(f"Loss: {loss.item()}")
-    #         optimizer.zero_grad()
-    #         loss.backward()
-    #         optimizer.step()
+    for epoch in range(100):
+        # with torch.no_grad():
+        for x, y in train_loader:
+            # 8, 3, 16, 224, 224
+            vis_x = x.permute(0, 2, 3, 4, 1)
+            cv2.imwrite('input.png', np.array(vis_x[0, 0]))
+            x = x.to(device)
+            y = y.to(device)
+            encoder_output = encoder(x)
+            features = encoder_output.view(8, 8, 14, 14, 1024)
+            features = features.permute(0, 4, 1, 2, 3)
+            print(features.shape) # 8x1024x8x14x14
+            output = segmentation_head(features) # torch.Size([8, 16, 64, 224, 224])
+            output = output.squeeze(1)
+            print(output.shape)
+            probs = torch.sigmoid(output)
+            loss = criterion(output, y)
+            binary_mask = (probs.detach().cpu().numpy() > 0.5)
+            cv2.imwrite('output.png', binary_mask[0, 0]*255)
+            print(f"Loss: {loss.item()}")
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
     # torch.save(segmentation_head.state_dict(), '/home/vgl/emir/weights/my_seg/segmentation_head_weights_2.pth')
     # BELOW IS THE INFERENCE
     # pca_s = PCA(n_components=3)
-    output_path = "/home/vgl/emir/segmentation_out_2_0000001.mp4"
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    output_video = cv2.VideoWriter(output_path, fourcc, 30, (224, 224))
+    # output_path = "/home/vgl/emir/segmentation_out_2_0000001.mp4"
+    # fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    # output_video = cv2.VideoWriter(output_path, fourcc, 30, (224, 224))
 
-    vr = VideoReader("/home/vgl/emir/datasets/tudl/train_real/segmentation_video/000001/input.mp4", ctx=cpu(0), height=224, width=224)
-    with torch.no_grad():
-        for i in range(0, len(vr) - 16, 16):
-            batch = vr.get_batch(range(i, i+16))
-            batch = batch.to(device).unsqueeze(0).float()
-            print(batch.permute(0, 4, 1, 2, 3).shape)
-            out = encoder(batch.permute(0, 4, 1, 2, 3))
-            # print(out.shape)
-            features = out.view(1, 8, 14, 14, 1024)
-            features = features.permute(0, 4, 1, 2, 3)
-            output = segmentation_head(features)
-            output = output.squeeze(1)
-            print(features.shape) # 8x1024x8x14x14
-            print(output.shape)
-            probs = torch.sigmoid(output)
-            binary_mask = (probs.detach().cpu().numpy() > 0.5)
+    # vr = VideoReader("/home/vgl/emir/datasets/tudl/train_real/segmentation_video/000001/input.mp4", ctx=cpu(0), height=224, width=224)
+    # with torch.no_grad():
+    #     for i in range(0, len(vr) - 16, 16):
+    #         batch = vr.get_batch(range(i, i+16))
+    #         batch = batch.to(device).unsqueeze(0).float()
+    #         print(batch.permute(0, 4, 1, 2, 3).shape)
+    #         out = encoder(batch.permute(0, 4, 1, 2, 3))
+    #         # print(out.shape)
+    #         features = out.view(1, 8, 14, 14, 1024)
+    #         features = features.permute(0, 4, 1, 2, 3)
+    #         output = segmentation_head(features)
+    #         output = output.squeeze(1)
+    #         print(features.shape) # 8x1024x8x14x14
+    #         print(output.shape)
+    #         probs = torch.sigmoid(output)
+    #         binary_mask = (probs.detach().cpu().numpy() > 0.5)
         #     attention = attention.squeeze(0).detach().cpu().numpy()  # Shape: [16, 1568, 1568]
         #     for j in range(16):
         #         attn_j = attention[j]  # 1568x1568
@@ -160,20 +160,20 @@ def main():
             
         # output_video.release()
                 
-            for j, frame in enumerate(batch.squeeze(0).cpu().numpy()):
-                frame = frame.astype(np.uint8)
-                mask = binary_mask[0, j]
-                mask = (mask * 255).astype(np.uint8)
+        #     for j, frame in enumerate(batch.squeeze(0).cpu().numpy()):
+        #         frame = frame.astype(np.uint8)
+        #         mask = binary_mask[0, j]
+        #         mask = (mask * 255).astype(np.uint8)
                 
-                colored_mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+        #         colored_mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
 
-                colored_mask[:, :, 0] = 0
-                colored_mask[:, :, 2] = 0
+        #         colored_mask[:, :, 0] = 0
+        #         colored_mask[:, :, 2] = 0
 
-                overlayed_frame = cv2.addWeighted(frame, 0.9, colored_mask, 0.3, 0)
-                output_video.write(overlayed_frame)
+        #         overlayed_frame = cv2.addWeighted(frame, 0.9, colored_mask, 0.3, 0)
+        #         output_video.write(overlayed_frame)
 
-        output_video.release()
+        # output_video.release()
             
         
     

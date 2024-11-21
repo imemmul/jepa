@@ -494,6 +494,7 @@ def init_model(
     model_name,
     patch_size=16,
     crop_size=224,
+    in_channels=3,
     # Video specific parameters
     frames_per_clip=16,
     tubelet_size=2,
@@ -512,6 +513,7 @@ def init_model(
         use_sdpa=use_sdpa,
         use_SiLU=use_SiLU,
         tight_SiLU=tight_SiLU,
+        in_chans=in_channels,
     )
 
     encoder.to(device)
